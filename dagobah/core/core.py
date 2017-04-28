@@ -1,3 +1,5 @@
+#!/bin/env python
+# -*- coding: utf-8 -*-
 """ Core classes for tasks and jobs (groups of tasks) """
 
 import os
@@ -81,7 +83,7 @@ class Dagobah(object):
         """ Construct this Dagobah instance from a JSON document. """
 
         self.delete()
-
+        print "_construct_from_json: %s" % rec
         for required_key in ['dagobah_id', 'created_jobs']:
             setattr(self, required_key, rec[required_key])
 
@@ -163,12 +165,14 @@ class Dagobah(object):
             job_id = self.backend.get_new_job_id()
             self.created_jobs += 1
 
+        #Job构造的时候已经调用了一次commit
         self.jobs.append(Job(self,
                              self.backend,
                              job_id,
                              job_name))
 
         job = self.get_job(job_name)
+        #这里又调用了一次commit，重复调用？
         job.commit()
 
     def load_ssh_conf(self):
@@ -655,7 +659,9 @@ class Job(DAG):
     def _commit_run_log(self):
         """" Commit the current run log to the backend. """
         logger.debug('Committing run log for job {0}'.format(self.name))
+        print "before _commit_run_log: %s" % self.run_log
         self.backend.commit_log(self.run_log)
+        print "after _commit_run_log: %s" % self.run_log
 
 
     def _serialize(self, include_run_logs=False, strict_json=False):

@@ -151,8 +151,11 @@ def init_dagobah(testing=False):
         logging.warn("SSH config doesn't exist, no remote hosts will be listed")
 
     dagobah = Dagobah(backend, event_handler, ssh_config)
+    print "know dagobah ids: %s" % backend.get_known_dagobah_ids()
+    print "dagobah.dagobah_id: %s" % dagobah.dagobah_id
     known_ids = [id for id in backend.get_known_dagobah_ids()
                  if id != dagobah.dagobah_id]
+    print "All dagobah ids in backend: %s" % known_ids
     if len(known_ids) > 1:
         # need a way to handle this intelligently through config
         raise ValueError('could not infer dagobah ID, ' +
@@ -260,6 +263,23 @@ def get_backend(config):
                               ' the optional drivers are installed? If not, try running ' +
                               '"pip install pymongo" to install them.')
         return MongoBackend(**backend_kwargs)
+
+    elif backend_string.lower() == 'redis':
+        backend_kwargs = {}
+        for conf_kwarg in ['host', 'port', 'db', 'dagobah_key', 'job_key', 'log_key']:
+            backend_kwargs[conf_kwarg] = get_conf(config, 'RedisBackend.%s' % conf_kwarg)
+        backend_kwargs['port'] = int(backend_kwargs['port'])
+        backend_kwargs['db'] = int(backend_kwargs['db'])
+
+        try:
+            from ..backend.redisb import RedisBackend
+        except Exception as e:
+            print "import RedisBackend exception: %s" % e
+            raise ImportError('Could not initialize the Redis Backend. Are you sure' +
+                              ' the optional drivers are installed? If not, try running ' +
+                              '"pip install redis" to install them.')
+        print backend_kwargs
+        return RedisBackend(**backend_kwargs)
 
     raise ValueError('unknown backend type specified in conf')
 

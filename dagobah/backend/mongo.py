@@ -122,6 +122,8 @@ class MongoBackend(BaseBackend):
         each task.
         """
 
+        print "commit_log: %s" % log_json
+
         log_json['_id'] = log_json['log_id']
         append = {'save_date': datetime.utcnow()}
 
@@ -132,25 +134,33 @@ class MongoBackend(BaseBackend):
                         values[key] = '\n'.join([values[key][:size/2],
                                                  'DAGOBAH STREAM SPLIT',
                                                  values[key][-1 * (size/2):]])
+        print dict(log_json.items() + append.items())
         self.log_coll.save(dict(log_json.items() + append.items()))
 
     def get_latest_run_log(self, job_id, task_name):
         q = {'job_id': ObjectId(job_id),
              'tasks.%s' % task_name: {'$exists': True}}
+        print 'get_latest_run_log: %s' % q
         cur = self.log_coll.find(q).sort([('save_date', pymongo.DESCENDING)])
         for rec in cur:
+            print "get_latest_run_log: %s" % rec
             return rec
         return {}
 
     def get_run_log_history(self, job_id, task_name, limit=10):
         q = {'job_id': ObjectId(job_id),
              'tasks.%s' % task_name: {'$exists': True}}
+        print 'get_run_log_history: %s' % q
         cur = self.log_coll.find(q).sort([('save_date',
                                            pymongo.DESCENDING)]).limit(limit)
+        #print "get_run_log_history: %s" % list(cur)
+
         return list(cur)
 
     def get_run_log(self, job_id, task_name, log_id):
         q = {'job_id': ObjectId(job_id),
              'tasks.%s' % task_name: {'$exists': True},
              'log_id': ObjectId(log_id)}
+        print 'get_run_log: %s' % q
+        print "get_run_log: %s" % self.log_coll.find_one(q)['tasks'][task_name]
         return self.log_coll.find_one(q)['tasks'][task_name]
